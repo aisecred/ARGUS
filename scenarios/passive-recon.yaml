@@ -1,0 +1,19 @@
+# Passive Reconnaissance Only
+# No active scanning - safe for OPSEC, uses 3rd party tools only
+
+domain:
+  - target-company.com
+
+outdir: recon_passive
+verbose: false
+workers: 8
+min_conf: 0
+target_conf: 85
+
+html_report: true
+
+# All OPSEC-sensitive flags are false
+httpx: false
+gowitness: false
+tech_stack_enum: false
+nuclei: false

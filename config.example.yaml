@@ -1,0 +1,87 @@
+# Domain OSINT Tool Configuration File
+# Copy this to config.yaml and customize for your environment
+# Run with: python3 domain_osint.py --config config.yaml
+
+# Input/Output
+domain:
+  - example.com
+  - partner.com
+domain_file: null
+outdir: recon_results
+verbose: false
+
+# Scanning Parameters
+target_conf: 85
+ports: "80,443"
+workers: 8
+min_conf: 0
+
+# Database Operations
+merge_dirs: null
+merge_recursive: null
+merge_only: false
+
+# Webhook Integration
+webhook: null
+# - "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+# - "https://discord.com/api/webhooks/YOUR/WEBHOOK"
+webhook_include_assets: false
+webhook_max_assets: 50
+
+# Reporting
+html_report: false
+export_csv: false
+export_json: false
+
+# New Features
+reverse_dns: false
+geolocate: false
+preset: null  # 'passive', 'active', or 'full'
+resume: false
+
+# OPSEC Enhancements
+proxy: null  # "http://127.0.0.1:8080"
+user_agent: null  # "Mozilla/5.0 (Custom User Agent)"
+rate_limit: 0.0  # seconds between requests
+stealth: false
+
+# OPSEC WARNING: These tools directly interact with targets
+# They generate requests and may trigger alerts - use with caution
+httpx: false
+gowitness: false
+tech_stack_enum: false
+nuclei: false
+
+# Query-only mode (no scanning)
+query: false
+
+# API Keys (optional — environment variables take precedence over config values)
+#
+# ProjectDiscovery Cloud Platform — improves subfinder and nuclei coverage
+#   env: PDCP_API_KEY  (get key at: https://cloud.projectdiscovery.io)
+# pdcp_api_key: null
+#
+# Passive API Enrichment (optional — can also be set via environment variables)
+# These run automatically when keys are present; no explicit flag needed.
+# Environment variables take precedence over config file values.
+#
+# Shodan DNS domain lookup (free tier supported)
+#   env: SHODAN_API_KEY
+# shodan_api_key: null
+#
+# Censys certificate search — https://search.censys.io
+#   NOTE: The certificate search endpoint requires a paid Legacy Search account.
+#   Free-tier bearer tokens are lookup-only and cannot enumerate subdomains.
+#
+#   Paid/legacy accounts: App ID + Secret (required for subdomain discovery)
+#     env: CENSYS_API_ID and CENSYS_API_SECRET
+# censys_api_id: null
+# censys_api_secret: null
+#
+#   Free accounts: bearer token (lookup-only, not useful for cert search)
+#     env: CENSYS_API_TOKEN
+# censys_api_token: null
+#
+# VirusTotal subdomain lookup (free tier: 500 requests/day)
+#   env: VIRUSTOTAL_API_KEY
+# virustotal_api_key: null

@@ -1,0 +1,26 @@
+# CI/CD Pipeline Integration
+# Automated scanning with webhook notification to Slack/Discord
+# Designed for regular scheduled scans with results integration
+
+domain_file: domains.txt
+outdir: recon_cicd
+verbose: false
+workers: 16
+min_conf: 0
+target_conf: 85
+
+html_report: true
+
+# Enable discovery tools only (passive)
+httpx: false
+gowitness: false
+tech_stack_enum: false
+nuclei: false
+
+# Webhook notifications
+webhook:
+  - "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+webhook_include_assets: true
+webhook_max_assets: 50
+
+query: false

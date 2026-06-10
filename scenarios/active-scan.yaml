@@ -1,0 +1,27 @@
+# Full Active Scanning
+# Performs comprehensive reconnaissance including direct target interaction
+# Only use with proper authorization
+
+domain:
+  - target-company.com
+
+outdir: recon_full
+verbose: false
+workers: 12
+min_conf: 70
+target_conf: 70
+
+# Report generation
+html_report: true
+
+# Full arsenal - all active tools enabled
+httpx: true
+gowitness: true
+tech_stack_enum: true
+nuclei: true
+
+# Optional webhook for results
+webhook: null
+# - "https://your-webhook-endpoint.com/scan-results"
+webhook_include_assets: true
+webhook_max_assets: 100

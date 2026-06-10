@@ -1,0 +1,129 @@
+# ============================================================
+# SCAN OUTPUT & RESULTS
+# ============================================================
+# Ignore all recon output directories
+recon_results/
+output/
+results/
+scans/
+screenshots/
+
+# Generated scan files (keep config YAMLs, ignore tool output)
+resolvers.txt
+to_resolve.txt
+targets.txt
+batch_*.txt
+tls_*.txt
+ptr_enrich.txt
+ptr_dns.json
+email_audit.json
+subfinder_*.txt
+dns.json
+httpx_final.json
+nuclei_full.json
+tech_stack.json
+tenants.txt
+gowitness.jsonl
+assets.csv
+assets.json
+report.html
+llm_analysis.md
+delta_report.md
+snapshot_prev.json
+
+# ============================================================
+# DATABASES
+# ============================================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================================
+# GEOLOCATION DATABASES
+# ============================================================
+*.mmdb
+GeoLite2-*.tar.gz
+
+# ============================================================
+# PYTHON
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+domain_osint_env/
+.venv/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
+pip-wheel-metadata/
+wheels/
+
+# Type checking / testing
+.mypy_cache/
+.pytest_cache/
+.tox/
+htmlcov/
+.coverage
+coverage.xml
+
+# ============================================================
+# CLONED TOOL DEPENDENCIES
+# ============================================================
+tools/
+
+# ============================================================
+# GENERATED FILES
+# ============================================================
+# Created by install.sh — not source controlled
+domain_osint_wrapper.sh
+go.tar.gz
+
+# ============================================================
+# SECRETS & ENVIRONMENT
+# ============================================================
+.env
+.env.local
+.env.*
+!.env.example
+*.key
+*.pem
+resume.cfg
+scan.yaml
+
+# ============================================================
+# IDE & EDITOR
+# ============================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================================
+# OPERATING SYSTEM
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ============================================================
+# LOGS & TEMP
+# ============================================================
+*.log
+*.tmp
+*.temp
