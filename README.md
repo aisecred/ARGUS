@@ -80,7 +80,7 @@ export PATH=$PATH:$(go env GOPATH)/bin
 python3 argus.py -d example.com --preset passive
 ```
 
-See [INSTALL.md](INSTALL.md) for detailed instructions and troubleshooting.
+See `INSTALL.md` for detailed instructions and troubleshooting.
 
 ### Geolocation (Optional)
 
@@ -137,7 +137,7 @@ cp config.example.yaml scan.yaml
 python3 argus.py --config scan.yaml -d example.com --preset passive
 ```
 
-See [CONFIG.md](CONFIG.md) for all available options. Example scenario configs are in `scenarios/`.
+Example scenario configs are in `scenarios/`. Run `python3 argus.py --help` for all available options.
 
 ### API Keys (Optional)
 
