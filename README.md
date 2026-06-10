@@ -46,7 +46,7 @@ cd argus
 ./install.sh
 ```
 
-After install, use the generated wrapper which handles venv activation automatically:
+The installer generates `argus_wrapper.sh` in the project directory — use it to run ARGUS without manually activating the virtual environment each time:
 
 ```bash
 ./argus_wrapper.sh -d example.com --preset passive

@@ -86,7 +86,7 @@ tools/
 # GENERATED FILES
 # ============================================================
 # Created by install.sh — not source controlled
-domain_osint_wrapper.sh
+argus_wrapper.sh
 go.tar.gz
 
 # ============================================================
