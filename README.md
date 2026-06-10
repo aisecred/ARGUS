@@ -5,185 +5,150 @@ A domain reconnaissance and asset intelligence tool for security researchers, bu
 ## Features
 
 ### Core Capabilities
-- **Subdomain Enumeration**: Uses subfinder with multiple sources
-- **DNS Resolution**: Comprehensive DNS analysis with ASN/CDN detection
-- **TLS Certificate Analysis**: SAN extraction and certificate intelligence
-- **HTTP Probing**: Technology fingerprinting and status detection
-- **Screenshot Capture**: Visual reconnaissance with gowitness
-- **Vulnerability Scanning**: Nuclei-powered security assessments
+- **Subdomain Enumeration** — subfinder with multiple passive sources
+- **DNS Resolution** — comprehensive DNS analysis with ASN/CDN detection
+- **TLS Certificate Analysis** — SAN extraction and certificate intelligence
+- **Passive API Enrichment** — Shodan, Censys, and VirusTotal integration
+- **Reverse DNS** — PTR record enumeration for related infrastructure
+- **IP Geolocation** — location intelligence using MaxMind GeoLite2
+- **ASN/CIDR Mapping** — full network range enumeration via asnmap
+- **Email Security Audit** — SPF, DMARC, DKIM, MTA-STS posture analysis
+- **Subdomain Takeover Detection** — passive flagging and active Nuclei confirmation
+- **HTTP Probing** — technology fingerprinting and status detection *(active)*
+- **Screenshot Capture** — visual reconnaissance with gowitness *(full)*
+- **Vulnerability Scanning** — Nuclei-powered security assessments *(full)*
 
-### Intelligence Features
-- **Confidence Scoring**: Automatic prioritization based on domain linkages
-- **Reverse DNS**: PTR record enumeration for related infrastructure
-- **IP Geolocation**: Location intelligence using MaxMind GeoLite2
-- **ASN Correlation**: Network infrastructure mapping
+### Reporting
+- **HTML Report** — sortable, filterable asset intelligence dashboard with hover tooltips
+- **CSV/JSON Export** — machine-readable output for downstream tooling
+- **LLM Analysis** — structured markdown brief for AI-assisted analysis
+- **Delta Reports** — diff between scan runs to surface new/changed/removed assets
+- **Webhook Notifications** — real-time alerts to Slack or any HTTP endpoint
 
-### Operational Features
-- **Config Files**: YAML/JSON configuration for complex scans
-- **Built-in Presets**: Quick-start configurations (passive/active/full)
-- **Resume Functionality**: Continue interrupted scans
-- **Export Options**: CSV/JSON database exports
-- **Webhook Integration**: Real-time notifications
-- **OPSEC Controls**: Proxy support, rate limiting, stealth modes
+### Operational
+- **Confidence Scoring** — automatic asset prioritization based on domain linkages
+- **Config Files** — YAML configuration for repeatable scan profiles
+- **Presets** — `passive`, `active`, `full` quick-start modes
+- **Resume** — continue interrupted scans against existing output directories
+- **OPSEC Controls** — proxy support, rate limiting, stealth mode, custom user agent
+
+---
 
 ## Installation
 
-### Automated Installation (Recommended)
+### Option 1: install.sh (Recommended)
+
+Installs everything in one shot — Go, all ProjectDiscovery tools, Python virtual environment, and walks you through MaxMind GeoLite2 setup.
+
 ```bash
-git clone <repo-url> domain_osint_tool
-cd domain_osint_tool
+git clone <repo-url> argus
+cd argus
 ./install.sh
 ```
 
-This installs everything automatically: Go, Python environment, external tools, and guides you through MaxMind setup.
+After install, use the generated wrapper which handles venv activation automatically:
 
-### Manual Installation
-See [INSTALL.md](INSTALL.md) for detailed manual installation instructions.
-
-## Quick Start
-
-After installation:
 ```bash
-# Passive reconnaissance (safe, no direct probing)
-./domain_osint_wrapper.sh -d example.com --preset passive
-
-# Active scanning with screenshots
-./domain_osint_wrapper.sh -d example.com --preset active
-
-# Full reconnaissance suite
-./domain_osint_wrapper.sh -d example.com --preset full
+./argus_wrapper.sh -d example.com --preset passive
 ```
 
-### Basic Usage
-```bash
-# Passive reconnaissance
-python3 domain_osint.py -d example.com
+### Option 2: Manual
 
-# Active scanning with screenshots
-python3 domain_osint.py -d example.com --httpx --gowitness
-
-# Use configuration file
-python3 domain_osint.py --config config.example.yaml
-```
-
-### Presets
-```bash
-# Passive recon only (safe)
-python3 domain_osint.py -d example.com --preset passive
-
-# Full active scan
-python3 domain_osint.py -d example.com --preset full
-```
-
-## Installation
-
-### Prerequisites: External Tools (Required)
-These Go-based reconnaissance tools must be installed and in your PATH:
+**Requirements:** Python 3.8+, Go 1.19+
 
 ```bash
-# Install ProjectDiscovery tools
+# Clone
+git clone <repo-url> argus
+cd argus
+
+# Python dependencies
+pip install -r requirements.txt
+
+# ProjectDiscovery tools
 go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
 go install -v github.com/projectdiscovery/dnsx/cmd/dnsx@latest
 go install -v github.com/projectdiscovery/tlsx/cmd/tlsx@latest
 go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
 go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
-
-# Install gowitness
+go install -v github.com/projectdiscovery/asnmap/cmd/asnmap@latest
 go install -v github.com/sensepost/gowitness@latest
-```
 
-Make sure `$GOPATH/bin` is in your `$PATH`:
-```bash
+# Ensure Go bin is in PATH
 export PATH=$PATH:$(go env GOPATH)/bin
-```
-
-### Python Installation Options
-
-#### Option 1: Direct Installation (Recommended)
-```bash
-# Clone and install
-git clone <repo-url>
-cd domain_osint_tool
-pip install -r requirements.txt
 
 # Run
-python3 domain_osint.py -d example.com
+python3 argus.py -d example.com --preset passive
 ```
 
-#### Option 2: Using pipx (Isolated Environment)
+See [INSTALL.md](INSTALL.md) for detailed instructions and troubleshooting.
+
+### Geolocation (Optional)
+
+Required for `--geolocate`. Free MaxMind account needed:
+
 ```bash
-# Install with pipx (assumes you've cloned the repo)
-cd domain_osint_tool
-pipx install -e .
-
-# Or install requirements in pipx environment
-pipx install --pip-args='-r requirements.txt' domain-osint
-
-# Run
-domain_osint.py -d example.com
+./setup_geolite2.sh
 ```
 
-**Note on pipx:** External Go tools (subfinder, dnsx, etc.) still need to be installed globally before using pipx, as pipx provides environment isolation for Python packages only.
+Or download `GeoLite2-City.mmdb` manually and place it in `/usr/share/GeoIP/` or the project directory.
 
-### Python Dependencies
-See [requirements.txt](requirements.txt) for Python package requirements:
-- **geoip2**: IP geolocation (auto-installed if `--geolocate` is used)
-- **PyYAML**: Configuration file support (auto-loaded if available)
+---
 
-Auto-install will attempt to install missing packages on first use.
+## Quick Start
 
-### Geolocation Setup (Optional)
-For IP geolocation with `--geolocate`:
+```bash
+# Passive recon — no direct target interaction
+python3 argus.py -d example.com --preset passive
 
-**Requires MaxMind GeoLite2 database** (free account needed):
-1. Run the automated setup: `./setup_geolite2.sh`
-2. Or download manually from: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
-3. Place `GeoLite2-City.mmdb` in: `/usr/share/GeoIP/` or `./`
+# Active scan — adds HTTP probing and tech fingerprinting
+python3 argus.py -d example.com --preset active
 
-See [INSTALL.md](INSTALL.md) for detailed step-by-step instructions.
+# Full suite — passive + active + screenshots + vuln scan
+python3 argus.py -d example.com --preset full
 
-**Note**: geoip2 package auto-installs when `--geolocate` is first used.
+# Using a config file
+python3 argus.py --config scenarios/passive-recon.yaml -d example.com
 
-## Requirements
+# Query and re-export an existing database
+python3 argus.py --query -o recon_results/example/
+```
 
-See [requirements.txt](requirements.txt) for Python dependencies.
+---
 
-External tools require Go 1.19+. Check individual tool documentation:
-- [subfinder](https://github.com/projectdiscovery/subfinder)
-- [dnsx](https://github.com/projectdiscovery/dnsx)
-- [tlsx](https://github.com/projectdiscovery/tlsx)
-- [httpx](https://github.com/projectdiscovery/httpx)
-- [nuclei](https://github.com/projectdiscovery/nuclei)
-- [gowitness](https://github.com/sensepost/gowitness)
+## Scan Modes (--preset)
+
+| Preset | What runs | Touches target? |
+|--------|-----------|-----------------|
+| `passive` | subfinder, tlsx, dnsx, reverse DNS, geolocation, email audit | No |
+| `active` | passive + httpx, tech stack fingerprinting | Yes (HTTP/S) |
+| `full` | active + gowitness screenshots + nuclei vuln scan | Yes (noisy) |
+
+Use `--stealth`, `--proxy`, and `--rate-limit` with active/full in sensitive engagements.
+
+---
 
 ## Configuration
 
-See [CONFIG.md](CONFIG.md) for detailed configuration options and examples.
+Copy `config.example.yaml` as a starting point:
 
-### Example Config
-```yaml
-domain:
-  - example.com
-  - api.example.com
-
-outdir: recon_results
-workers: 16
-verbose: true
-
-# New features
-reverse_dns: true
-geolocate: true
-export_json: true
-
-# OPSEC
-proxy: "http://127.0.0.1:8080"
-stealth: true
-
-# Active scanning
-httpx: true
-gowitness: true
-nuclei: true
+```bash
+cp config.example.yaml scan.yaml
+# edit scan.yaml with your API keys and preferences
+python3 argus.py --config scan.yaml -d example.com --preset passive
 ```
+
+See [CONFIG.md](CONFIG.md) for all available options. Example scenario configs are in `scenarios/`.
+
+### API Keys (Optional)
+
+ARGUS runs without API keys. When keys are present (via config file or environment variables), passive enrichment is significantly expanded:
+
+- **Shodan** — indexed infrastructure, open ports, banners
+- **Censys** — certificate and host intelligence
+- **VirusTotal** — passive DNS and subdomain history
+- **PDCP** — ProjectDiscovery Cloud Platform for subfinder sources
+
+---
 
 ## Confidence Scoring
 
@@ -197,52 +162,63 @@ Assets are automatically scored so operators can focus on what matters most.
 | **60** | Discovered via passive API enrichment (Shodan, Censys, VirusTotal) |
 | **50** | Discovered via reverse DNS or tenant tool |
 | **40** | Default baseline — tool hit, not yet correlated |
-| **25** | Third-party hosting PTR (AWS EC2, CloudFront, GitHub CDN) — infrastructure intel, not a target asset |
+| **25** | Third-party infrastructure PTR (AWS EC2, CloudFront, GitHub CDN) |
 
-Assets below your `--min-conf` threshold are stored in the database but excluded from the default query view and exports. Use `--min-conf 0` to see everything.
+Use `--min-conf` to filter results. `--min-conf 0` shows everything.
 
-## OPSEC Considerations
-
-⚠️ **Active scanning tools directly interact with targets and may trigger alerts:**
-
-- `--httpx`: HTTP requests to discovered hosts
-- `--gowitness`: Screenshot capture (visible activity)
-- `--nuclei`: Vulnerability scanning (may trigger WAF)
-- `--tech-stack-enum`: Technology detection
-
-Use `--stealth`, `--proxy`, and `--rate-limit` for safer operations.
+---
 
 ## Output
 
-- **Database**: SQLite database with all findings
-- **HTML Report**: Web-viewable asset intelligence
-- **CSV/JSON Export**: Machine-readable data
-- **Screenshots**: Visual reconnaissance images
-- **Webhook Notifications**: Real-time alerts
+Each scan creates an output directory containing:
+
+| File | Description |
+|------|-------------|
+| `recon.db` | SQLite database — all findings, queryable |
+| `report.html` | Interactive HTML report with sortable table and hover tooltips |
+| `assets.csv` | CSV export of all assets |
+| `assets.json` | JSON export of all assets |
+| `llm_analysis.md` | Structured markdown brief for AI-assisted analysis |
+| `delta_report.md` | Changes since the previous scan run |
+| `email_audit.json` | Email security posture findings |
+
+---
 
 ## Examples
 
-### Bug Bounty Recon
+### Passive Recon with API Enrichment
 ```bash
-# Comprehensive scan with exports
-python3 domain_osint.py -d target.com --preset full \
-  --export-json --html-report \
+python3 argus.py -d target.com --preset passive \
+  --config scan.yaml --html-report
+```
+
+### Bug Bounty — Full Suite
+```bash
+python3 argus.py -d target.com --preset full \
   --webhook https://hooks.slack.com/your-webhook
 ```
 
-### Passive Infrastructure Mapping
+### Check for Subdomain Takeovers
 ```bash
-# Safe discovery with geolocation
-python3 domain_osint.py -d company.com --reverse-dns --geolocate \
-  --export-csv --min-conf 70
+# Flag candidates passively (runs with any scan)
+python3 argus.py -d target.com --preset passive
+
+# Confirm with Nuclei against existing DB
+python3 argus.py -o recon_results/target/ --takeover
 ```
 
 ### Resume Interrupted Scan
 ```bash
-# Continue where you left off
-python3 domain_osint.py --resume --gowitness --nuclei
+python3 argus.py -d target.com --resume -o recon_results/target/
 ```
+
+### Merge Results from Multiple Scans
+```bash
+python3 argus.py --merge-dirs scan1/ scan2/ --merge-only -o merged/
+```
+
+---
 
 ## License
 
-This tool is for authorized security research and testing only. Users are responsible for compliance with applicable laws and terms of service.
+This tool is intended for authorized security research and testing only. Users are responsible for compliance with applicable laws and rules of engagement.
