@@ -73,14 +73,14 @@ go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
 go install -v github.com/projectdiscovery/asnmap/cmd/asnmap@latest
 go install -v github.com/sensepost/gowitness@latest
 
-# Ensure Go bin is in PATH
+# Add Go bin to PATH (add to ~/.bashrc to persist)
 export PATH=$PATH:$(go env GOPATH)/bin
 
 # Run
 python3 argus.py -d example.com --preset passive
 ```
 
-See `INSTALL.md` for detailed instructions and troubleshooting.
+> **Kali Linux / externally-managed Python:** If `pip install` fails with an "externally-managed-environment" error, use a virtual environment: `python3 -m venv argus_env && source argus_env/bin/activate && pip install -r requirements.txt`
 
 ### Geolocation (Optional)
 
@@ -216,6 +216,22 @@ python3 argus.py -d target.com --resume -o recon_results/target/
 ```bash
 python3 argus.py --merge-dirs scan1/ scan2/ --merge-only -o merged/
 ```
+
+---
+
+## Troubleshooting
+
+**`subfinder: command not found` / tool not found**
+Go bin directory isn't in PATH. Add it permanently:
+```bash
+echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> ~/.bashrc && source ~/.bashrc
+```
+
+**`ModuleNotFoundError: No module named 'geoip2'`**
+Run `pip install geoip2` inside your active virtual environment, or `sudo apt install python3-geoip2` on Debian/Kali.
+
+**`GeoLite2 database not found`**
+Run `./setup_geolite2.sh` or place `GeoLite2-City.mmdb` in `/usr/share/GeoIP/`, `/var/lib/GeoIP/`, or the project directory.
 
 ---
 
