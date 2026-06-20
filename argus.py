@@ -2672,6 +2672,7 @@ Geolocation Setup:
             else:
                 print_status("dnsx: complete", Colors.GREEN, "[+]")
 
+            resolved_hosts = set()
             if os.path.exists(dns_json):
                 try:
                     with open(dns_json, 'r') as f:
@@ -2681,6 +2682,7 @@ Geolocation Setup:
                                 host = d.get("host")
                                 if not host:
                                     continue
+                                resolved_hosts.add(host)
 
                                 ip_list = d.get("a") or d.get("ips") or d.get("ip") or []
                                 if isinstance(ip_list, str):
@@ -2758,6 +2760,7 @@ Geolocation Setup:
                                     cidr=cidr,
                                     cdn=cdn_val,
                                     confidence=conf,
+                                    is_live=1,
                                 )
                                 if cname_val:
                                     asset_kwargs["cname"] = cname_val
@@ -2779,7 +2782,10 @@ Geolocation Setup:
 
             for s in seeds:
                 try:
-                    db.update_asset(s, tool_name="dnsx")
+                    if s in resolved_hosts:
+                        db.update_asset(s, tool_name="dnsx")
+                    else:
+                        db.update_asset(s, tool_name="dnsx", is_live=0)
                 except Exception:
                     pass
 

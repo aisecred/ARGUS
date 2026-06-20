@@ -15,11 +15,11 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 setup(
     name="argus",
     version="2.1.0",
-    author="OSINT Team",
+    author="aisecred",
     description="ARGUS — Adaptive Reconnaissance, Gathering, and Understanding Suite",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/domain-osint-tool",
+    url="https://github.com/aisecred/ARGUS",
     py_modules=["argus"],
     entry_points={
         "console_scripts": [

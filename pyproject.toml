@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "OSINT Team"}
+    {name = "aisecred"}
 ]
 keywords = ["osint", "reconnaissance", "recon", "domain", "enumeration", "security"]
 classifiers = [
@@ -44,10 +44,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/domain-osint-tool"
-Documentation = "https://github.com/yourusername/domain-osint-tool#readme"
-Repository = "https://github.com/yourusername/domain-osint-tool.git"
-Issues = "https://github.com/yourusername/domain-osint-tool/issues"
+Homepage = "https://github.com/aisecred/ARGUS"
+Documentation = "https://github.com/aisecred/ARGUS#readme"
+Repository = "https://github.com/aisecred/ARGUS.git"
+Issues = "https://github.com/aisecred/ARGUS/issues"
 
 [project.scripts]
 domain_osint = "domain_osint:main"
