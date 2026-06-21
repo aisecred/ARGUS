@@ -1,65 +1,78 @@
 #!/bin/bash
 # MaxMind GeoLite2 Database Setup Script
-# Helps users download and install the GeoLite2-City database
+# Downloads and installs the GeoLite2-City database for ARGUS geolocation
 
 set -e
 
 echo "╔════════════════════════════════════════════╗"
 echo "║  MaxMind GeoLite2 Database Setup          ║"
 echo "╚════════════════════════════════════════════╝"
-
 echo ""
-echo "This script will help you set up the MaxMind GeoLite2 database for IP geolocation."
+echo "MaxMind now requires both an Account ID and a License Key to download GeoLite2."
 echo ""
 
-# Check if user has a license key
-echo "Do you already have a MaxMind license key? (y/n)"
-read -r has_key
+# Prompt for credentials
+echo "Do you already have a MaxMind account ID and license key? (y/n)"
+read -r has_creds
 
-if [[ "$has_key" =~ ^[Yy]$ ]]; then
+if [[ "$has_creds" =~ ^[Yy]$ ]]; then
+    echo "Enter your MaxMind account ID:"
+    read -r account_id
+    account_id="$(echo -n "$account_id" | tr -d '[:space:]')"
+
     echo "Enter your MaxMind license key:"
     read -r license_key
+    license_key="$(echo -n "$license_key" | tr -d '[:space:]')"
 
-    echo ""
-    echo "Downloading GeoLite2-City database..."
-    echo "URL: https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=${license_key}&suffix=tar.gz"
-
-    # Download the database
-    if command -v wget &> /dev/null; then
-        wget -q -O GeoLite2-City.tar.gz "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=${license_key}&suffix=tar.gz"
-    elif command -v curl &> /dev/null; then
-        curl -s -o GeoLite2-City.tar.gz "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=${license_key}&suffix=tar.gz"
-    else
-        echo "❌ Neither wget nor curl found. Please install one and try again."
+    if [ -z "$account_id" ] || [ -z "$license_key" ]; then
+        echo "Account ID and license key are both required. Exiting."
         exit 1
     fi
 
-    # Extract the database
+    echo ""
+    echo "Downloading GeoLite2-City database..."
+
+    url="https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz"
+
+    if command -v curl &> /dev/null; then
+        curl -fsSL -o GeoLite2-City.tar.gz -u "${account_id}:${license_key}" "$url"
+    elif command -v wget &> /dev/null; then
+        wget -q -O GeoLite2-City.tar.gz \
+            --user="$account_id" --password="$license_key" "$url"
+    else
+        echo "Neither curl nor wget found. Please install one and try again."
+        exit 1
+    fi
+
     echo "Extracting database..."
     tar -xzf GeoLite2-City.tar.gz
     find . -name "GeoLite2-City.mmdb" -exec mv {} ./GeoLite2-City.mmdb \;
+    rm -rf GeoLite2-City.tar.gz GeoLite2-City_*/
 
-    # Clean up
-    rm -rf GeoLite2-City.tar.gz GeoLite2-City_*
-
-    echo ""
-    echo "✓ Database downloaded and extracted to: ./GeoLite2-City.mmdb"
-    echo ""
-    echo "You can now use --geolocate with the domain OSINT tool!"
+    if [ -f "./GeoLite2-City.mmdb" ]; then
+        echo ""
+        echo "✓ GeoLite2-City.mmdb installed successfully"
+        echo ""
+        echo "Geolocation is now enabled — it runs automatically with all scan presets."
+    else
+        echo "Download appeared to succeed but GeoLite2-City.mmdb was not found."
+        echo "Check your account ID and license key and try again."
+        exit 1
+    fi
 
 else
     echo ""
-    echo "To get a MaxMind license key:"
-    echo "1. Visit: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data"
-    echo "2. Create a free account"
-    echo "3. Go to 'My Account' → 'My License Key'"
-    echo "4. Generate a new license key"
-    echo "5. Run this script again with your license key"
+    echo "To get a free MaxMind account and license key:"
+    echo "  1. Sign up at: https://www.maxmind.com/en/geolite2/signup"
+    echo "  2. Log in and go to Account → Manage License Keys"
+    echo "  3. Generate a new key — save both the Account ID and the License Key"
+    echo "  4. Run this script again with those credentials"
     echo ""
-    echo "Alternatively, download manually and place GeoLite2-City.mmdb in:"
-    echo "  - /usr/share/GeoIP/GeoLite2-City.mmdb (system-wide)"
-    echo "  - ./GeoLite2-City.mmdb (current directory)"
-    echo "  - ~/GeoLite2-City.mmdb (home directory)"
+    echo "The database can also be placed manually at any of these paths:"
+    echo "  - ./GeoLite2-City.mmdb          (current directory)"
+    echo "  - ~/GeoLite2-City.mmdb           (home directory)"
+    echo "  - /usr/share/GeoIP/GeoLite2-City.mmdb"
+    echo "  - /var/lib/GeoIP/GeoLite2-City.mmdb"
 fi
 
 echo ""

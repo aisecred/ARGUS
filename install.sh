@@ -291,6 +291,33 @@ install_tenant_domains() {
     fi
 }
 
+# Download and extract GeoLite2-City.mmdb using account ID and license key
+_download_geolite2() {
+    local account_id="$1"
+    local license_key="$2"
+    local url="https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz"
+
+    log_info "Downloading GeoLite2-City database..."
+    if command_exists curl; then
+        curl -fsSL -o GeoLite2-City.tar.gz -u "${account_id}:${license_key}" "$url"
+    else
+        wget -q -O GeoLite2-City.tar.gz \
+            --user="$account_id" --password="$license_key" "$url"
+    fi
+
+    log_info "Extracting database..."
+    tar -xzf GeoLite2-City.tar.gz
+    find . -name "GeoLite2-City.mmdb" -exec mv {} ./GeoLite2-City.mmdb \;
+    rm -rf GeoLite2-City.tar.gz GeoLite2-City_*/
+
+    if [ -f "./GeoLite2-City.mmdb" ]; then
+        log_success "GeoLite2-City.mmdb installed — geolocation is ready"
+    else
+        log_error "Download failed — check your account ID and license key"
+        log_info "Try again with: ./setup_geolite2.sh"
+    fi
+}
+
 # Setup MaxMind GeoLite2 database
 setup_maxmind_db() {
     log_step "Setting up MaxMind GeoLite2 database..."
@@ -298,44 +325,55 @@ setup_maxmind_db() {
     local db_path="./GeoLite2-City.mmdb"
 
     if [ -f "$db_path" ]; then
-        log_warning "GeoLite2 database already exists at $db_path"
+        log_info "GeoLite2 database already exists at $db_path — skipping"
         return
     fi
 
-    log_info "MaxMind requires a free account to download the GeoLite2 database."
-    log_info "This is free and provides access to IP geolocation data."
-    echo
-    log_info "Would you like to:"
-    echo "  1) Set up MaxMind account now (opens browser)"
-    echo "  2) Skip for now (you can run setup_geolite2.sh later)"
-    echo "  3) Continue without geolocation"
+    log_info "Geolocation uses the free MaxMind GeoLite2-City database."
+    log_info "A free MaxMind account and license key are required to download it."
     echo
 
-    read -p "Choose an option (1-3): " choice
+    read -p "Do you have a MaxMind account ID and license key? (y/n/skip): " has_key
 
-    case $choice in
-        1)
-            log_info "Opening MaxMind website..."
-            if command_exists xdg-open; then
-                xdg-open "https://dev.maxmind.com/geoip/geolite2-free-geolocation-data"
-            elif command_exists open; then
-                open "https://dev.maxmind.com/geoip/geolite2-free-geolocation-data"
+    case "$has_key" in
+        [Yy]*)
+            read -p "Enter your MaxMind account ID: " account_id
+            account_id="$(echo -n "$account_id" | tr -d '[:space:]')"
+            read -p "Enter your MaxMind license key: " license_key
+            license_key="$(echo -n "$license_key" | tr -d '[:space:]')"
+            if [ -n "$account_id" ] && [ -n "$license_key" ]; then
+                _download_geolite2 "$account_id" "$license_key"
             else
-                log_warning "Please visit: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data"
+                log_warning "Account ID or key missing — skipping. Run ./setup_geolite2.sh to set up later."
             fi
-
-            log_info "After creating your account and getting a license key,"
-            log_info "run: ./setup_geolite2.sh"
             ;;
-        2)
-            log_info "You can set up geolocation later by running:"
-            log_info "  ./setup_geolite2.sh"
-            ;;
-        3)
-            log_info "Skipping geolocation setup. You can enable it later."
+        [Nn]*)
+            log_info "To get a free MaxMind account and license key:"
+            log_info "  1. Sign up at: https://www.maxmind.com/en/geolite2/signup"
+            log_info "  2. Log in and go to Account → Manage License Keys"
+            log_info "  3. Generate a new key — save both the Account ID and the key"
+            echo
+            if command_exists xdg-open; then
+                xdg-open "https://www.maxmind.com/en/geolite2/signup" 2>/dev/null &
+            elif command_exists open; then
+                open "https://www.maxmind.com/en/geolite2/signup" 2>/dev/null &
+            fi
+            read -p "Enter your account ID when ready (or press Enter to skip): " account_id
+            account_id="$(echo -n "$account_id" | tr -d '[:space:]')"
+            if [ -n "$account_id" ]; then
+                read -p "Enter your license key: " license_key
+                license_key="$(echo -n "$license_key" | tr -d '[:space:]')"
+                if [ -n "$license_key" ]; then
+                    _download_geolite2 "$account_id" "$license_key"
+                else
+                    log_info "Skipping — run ./setup_geolite2.sh once you have a key"
+                fi
+            else
+                log_info "Skipping — run ./setup_geolite2.sh once you have your credentials"
+            fi
             ;;
         *)
-            log_warning "Invalid choice. Skipping geolocation setup."
+            log_info "Skipping — run ./setup_geolite2.sh to set up geolocation later"
             ;;
     esac
 }

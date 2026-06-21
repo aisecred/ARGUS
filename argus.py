@@ -704,7 +704,7 @@ def get_random_user_agent():
     ]
     return random.choice(user_agents)
 
-def run_command(command, log_msg, verbose=False, use_shell=False, timeout=None):
+def run_command(command, log_msg, verbose=False, use_shell=False, timeout=None, warn_nonzero=True):
     """Run a command, capture stdout/stderr and return CompletedProcess-like dict.
     If verbose=True stream stdout/stderr live (useful for long tools like tlsx)."""
     print_status(f"{log_msg}...", Colors.CYAN)
@@ -748,7 +748,7 @@ def run_command(command, log_msg, verbose=False, use_shell=False, timeout=None):
         print_status(f"OS error running {log_msg}: {e}", Colors.YELLOW, "[!]")
         return {"returncode": -1, "stdout": "", "stderr": str(e)}
 
-    if returncode != 0:
+    if returncode != 0 and warn_nonzero:
         print_status(f"{log_msg} returned code {returncode}", Colors.YELLOW, "[!]")
         if verbose:
             logging.debug(stdout)
@@ -935,6 +935,7 @@ class ReconDB:
                 "ALTER TABLE assets ADD COLUMN cidr TEXT;",
                 "ALTER TABLE assets ADD COLUMN geolocation TEXT;",
                 "ALTER TABLE assets ADD COLUMN cname TEXT;",
+                "ALTER TABLE assets ADD COLUMN asn_name TEXT;",
             ]:
                 try:
                     conn.execute(col_ddl)
@@ -1044,7 +1045,7 @@ class ReconDB:
             above = conn.execute("SELECT COUNT(*) AS cnt FROM assets WHERE confidence >= ?", (min_conf,)).fetchone()["cnt"] or 0
 
             cur = conn.execute(
-                "SELECT host, ip, asn, cidr, cdn, confidence, status_code, open_ports, tools_run, first_seen, last_seen FROM assets WHERE confidence >= ? ORDER BY confidence DESC, host LIMIT 200",
+                "SELECT host, ip, asn, asn_name, cidr, cdn, confidence, status_code, open_ports, tools_run, first_seen, last_seen FROM assets WHERE confidence >= ? ORDER BY confidence DESC, host LIMIT 200",
                 (min_conf,)
             )
             rows = [dict(r) for r in cur.fetchall()]
@@ -1147,8 +1148,8 @@ class ReconDB:
         print_status(f"DB Summary: total={summary['total']}, live={summary['live']}, >=conf={min_conf}={summary['above']}", Colors.GREEN, "[=]")
         print()
         print("Argus — Asset Intelligence Report")
-        hdr = ("Host", "IP Address", "ASN", "CIDR", "CDN", "Confidence", "Status Code", "Ports", "Tools Run", "First Seen", "Last Seen")
-        widths = [30, 15, 10, 18, 8, 10, 12, 14, 25, 19, 19]
+        hdr = ("Host", "IP Address", "ASN / Owner", "CIDR", "CDN", "Confidence", "Status Code", "Ports", "Tools Run", "First Seen", "Last Seen")
+        widths = [30, 15, 22, 18, 8, 10, 12, 14, 25, 19, 19]
         # header line
         header_line = " | ".join(h.ljust(w) for h, w in zip(hdr, widths))
         sep = "-" * len(header_line)
@@ -1158,7 +1159,9 @@ class ReconDB:
         for r in summary['rows']:
             host = _t(r.get("host", ""), widths[0])
             ip = _t(str((r.get("ip") or "")).replace(", ", ","), widths[1])
-            asn = _t(r.get("asn", ""), widths[2])
+            asn_raw = r.get("asn") or ""
+            asn_name_raw = r.get("asn_name") or ""
+            asn = _t(f"{asn_raw} {asn_name_raw}".strip() if asn_name_raw else asn_raw, widths[2])
             cidr = _t(r.get("cidr", ""), widths[3])
             cdn = _t(r.get("cdn", ""), widths[4])
             conf = _t(r.get("confidence", ""), widths[5])
@@ -1177,7 +1180,7 @@ class ReconDB:
         import csv
         with self._connection() as conn:
             cur = conn.execute(
-                "SELECT host, ip, asn, cidr, cdn, confidence, cname, discovery_reason, "
+                "SELECT host, ip, asn, asn_name, cidr, cdn, confidence, cname, discovery_reason, "
                 "web_title, status_code, tech_stack, open_ports, vulns, geolocation, "
                 "is_live, first_seen, last_seen, last_scanned, tools_run, screenshot_path "
                 "FROM assets WHERE confidence >= ? ORDER BY confidence DESC, host",
@@ -1188,7 +1191,7 @@ class ReconDB:
         with open(filepath, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow([
-                'host', 'ip', 'asn', 'cidr', 'cdn', 'confidence', 'cname',
+                'host', 'ip', 'asn', 'asn_name', 'cidr', 'cdn', 'confidence', 'cname',
                 'discovery_reason', 'web_title', 'status_code', 'tech_stack',
                 'open_ports', 'vulns', 'geolocation', 'is_live',
                 'first_seen', 'last_seen', 'last_scanned', 'tools_run', 'screenshot_path',
@@ -1201,14 +1204,14 @@ class ReconDB:
         """Export database to JSON file."""
         with self._connection() as conn:
             cur = conn.execute(
-                "SELECT host, ip, asn, cidr, cdn, confidence, cname, discovery_reason, "
+                "SELECT host, ip, asn, asn_name, cidr, cdn, confidence, cname, discovery_reason, "
                 "web_title, status_code, tech_stack, open_ports, vulns, geolocation, "
                 "is_live, first_seen, last_seen, last_scanned, tools_run, screenshot_path "
                 "FROM assets WHERE confidence >= ? ORDER BY confidence DESC, host",
                 (min_conf,)
             )
             rows = [dict(r) for r in cur.fetchall()]
-        
+
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(rows, f, indent=2, default=str)
         print_status(f"JSON export saved: {filepath}", Colors.GREEN, "[+]")
@@ -1227,7 +1230,7 @@ class ReconDB:
             t_cand = conn.execute("SELECT COUNT(*) AS c FROM assets WHERE vulns LIKE '%takeover-risk%'").fetchone()["c"] or 0
             t_conf = conn.execute("SELECT COUNT(*) AS c FROM assets WHERE vulns LIKE '%subdomain-takeover:%'").fetchone()["c"] or 0
             rows = [dict(r) for r in conn.execute(
-                "SELECT host, ip, asn, cidr, cdn, confidence, cname, tech_stack, "
+                "SELECT host, ip, asn, asn_name, cidr, cdn, confidence, cname, tech_stack, "
                 "web_title, status_code, open_ports, vulns, geolocation, discovery_reason, "
                 "first_seen, last_seen, tools_run "
                 "FROM assets WHERE confidence >= ? ORDER BY confidence DESC, host",
@@ -1240,7 +1243,7 @@ class ReconDB:
             ).fetchall()
             # ASN breakdown
             asn_rows = conn.execute(
-                "SELECT asn, COUNT(*) AS c FROM assets WHERE asn IS NOT NULL AND asn != '' "
+                "SELECT asn, MAX(asn_name) AS asn_name, COUNT(*) AS c FROM assets WHERE asn IS NOT NULL AND asn != '' "
                 "GROUP BY asn ORDER BY c DESC LIMIT 10"
             ).fetchall()
 
@@ -1355,7 +1358,12 @@ class ReconDB:
 
         # Build CDN / ASN stat cards
         cdn_stats = "".join(f'<div class="stat-item"><span class="stat-label">{he(_t(r["cdn"]))}</span><span class="stat-num">{r["c"]}</span></div>' for r in cdn_rows)
-        asn_stats = "".join(f'<div class="stat-item"><span class="stat-label">{he(_t(r["asn"]))}</span><span class="stat-num">{r["c"]}</span></div>' for r in asn_rows)
+        asn_stats = "".join(
+            f'<div class="stat-item"><span class="stat-label">{he(_t(r["asn"]))}'
+            + (f' <span style="color:#8b949e;font-weight:400">{he(_t(r["asn_name"]))}</span>' if r["asn_name"] else '')
+            + f'</span><span class="stat-num">{r["c"]}</span></div>'
+            for r in asn_rows
+        )
 
         # Build table rows
         tbody = ""
@@ -1371,7 +1379,7 @@ class ReconDB:
             tbody += f"""<tr class="{rc}">
   <td class="host-cell" title="{he(_t(r.get('host')))}">{he(_t(r.get('host')))}</td>
   <td><small>{he(_t(r.get('ip')))}</small></td>
-  <td><small>{he(_t(r.get('asn')))}</small></td>
+  <td><small>{he(_t(r.get('asn')))}</small>{'<br><small style="color:#8b949e">' + he(_t(r.get('asn_name'))) + '</small>' if r.get('asn_name') else ''}</td>
   <td><small>{he(_t(r.get('cidr')))}</small></td>
   <td>{he(_t(r.get('cdn')))}</td>
   <td class="conf-cell"><span class="conf-badge {cc}">{he(_t(r.get('confidence')))}</span></td>
@@ -1735,8 +1743,8 @@ document.querySelectorAll('.has-tip').forEach(function(el) {{
                     try:
                         response = reader.city(ip)
                         geo_map[ip] = {
-                            "country": response.country.name,
-                            "city": response.city.name,
+                            "country": response.country.name or "Unknown",
+                            "city": response.city.name or "",
                             "latitude": response.location.latitude,
                             "longitude": response.location.longitude
                         }
@@ -2484,7 +2492,9 @@ Geolocation Setup:
         # 1. Tenant Discovery
         tenant_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools", "tenant_domains", "tenant-domains.sh")
         tenant_out = os.path.join(abs_outdir, "tenants.txt")
-        run_command([tenant_script, "-d", domains[0], "-o", tenant_out], "Initial Tenant Search", args.verbose)
+        tenant_res = run_command([tenant_script, "-d", domains[0], "-o", tenant_out], "Initial Tenant Search", args.verbose, warn_nonzero=False)
+        if tenant_res.get("returncode", 0) != 0:
+            print_status("Tenant search: no domains found", Colors.YELLOW, "[-]")
         
         seeds = set(domains)
         if os.path.exists(tenant_out):
@@ -2691,6 +2701,7 @@ Geolocation Setup:
 
                                 asn_info = d.get("asn") or {}
                                 asn_val = asn_info.get("as-number") or asn_info.get("asn") or asn_info.get("as") or ""
+                                asn_name_val = asn_info.get("as-name") or asn_info.get("name") or ""
                                 cidr = asn_info.get("as-prefix") or asn_info.get("prefix") or asn_info.get("as-prefixes") or asn_info.get("cidr") or asn_info.get("network") or asn_info.get("net") or d.get("cidr") or d.get("prefix") or ""
                                 if not cidr and ip_list:
                                     try:
@@ -2757,6 +2768,7 @@ Geolocation Setup:
                                     tool_name="dnsx",
                                     ip=ip_list,
                                     asn=asn_val,
+                                    asn_name=asn_name_val,
                                     cidr=cidr,
                                     cdn=cdn_val,
                                     confidence=conf,
@@ -3103,6 +3115,7 @@ Geolocation Setup:
                                     continue
                                 asn_info = d.get("asn") or {}
                                 asn_val  = asn_info.get("as-number") or ""
+                                asn_name_val = asn_info.get("as-name") or asn_info.get("name") or ""
                                 cidr     = asn_info.get("as-prefix") or ""
                                 if not cidr:
                                     ips = d.get("a") or []
@@ -3113,7 +3126,7 @@ Geolocation Setup:
                                         except Exception:
                                             pass
                                 cdn_val = d.get("cdn-name") or ("Yes" if d.get("cdn") else "No")
-                                db.update_asset(host, tool_name="dnsx", asn=asn_val, cidr=cidr, cdn=cdn_val)
+                                db.update_asset(host, tool_name="dnsx", asn=asn_val, asn_name=asn_name_val, cidr=cidr, cdn=cdn_val)
                             except json.JSONDecodeError:
                                 continue
                 print_status(f"PTR enrichment: {len(added_ptr_hosts)} hosts enriched with ASN/CDN", Colors.GREEN, "[+]")
@@ -3135,7 +3148,9 @@ Geolocation Setup:
 
         with db._connection() as conn:
             for ip, geo in geo_map.items():
-                geo_str = f"{geo.get('city', 'Unknown')}, {geo.get('country', 'Unknown')}"
+                city = geo.get('city') or ""
+                country = geo.get('country') or "Unknown"
+                geo_str = f"{city}, {country}" if city else country
                 conn.execute("UPDATE assets SET geolocation = ? WHERE ip LIKE ?", (geo_str, f"%{ip}%"))
             conn.commit()
 

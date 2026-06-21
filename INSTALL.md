@@ -70,68 +70,65 @@ echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> ~/.bashrc
 
 ### 3. Optional: IP Geolocation Setup
 
-For geolocation capabilities with `--geolocate`:
+Geolocation runs automatically with all scan presets — no flag required. It uses the
+free MaxMind GeoLite2-City database, which must be downloaded separately because
+MaxMind requires a free account.
 
-1. **Install geoip2** (will auto-install on first use if not present):
+1. **Install geoip2** (installed automatically by `install.sh` via `requirements.txt`):
    ```bash
    pip install geoip2
    ```
 
    **Note for externally managed environments** (like Kali Linux):
-   If you get "externally-managed-environment" errors, use pipx:
+   If you get "externally-managed-environment" errors:
    ```bash
-   # For pipx installations (recommended):
-   pipx inject domain_osint geoip2
-   
-   # Alternative methods:
-   # Using virtual environment
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install geoip2
-   
-   # System package (if available)
+   # Use virtual environment (recommended)
+   python3 -m venv domain_osint_env
+   source domain_osint_env/bin/activate
+   pip install -r requirements.txt
+
+   # Or system package (if available)
    sudo apt install python3-geoip2
-   
-   # Force install (not recommended, may break system)
-   pip install --break-system-packages geoip2
    ```
 
-2. **Download MaxMind GeoLite2 Database** (Required for geolocation):
-   
-   **Option 1: Use the automated setup script (recommended):**
+2. **Get a MaxMind account and license key:**
+
+   MaxMind requires both an **Account ID** and a **License Key** to download GeoLite2.
+
+   1. Sign up for a free account at: https://www.maxmind.com/en/geolite2/signup
+   2. Log in and go to **Account → Manage License Keys**
+   3. Click **Generate new license key** — save both the **Account ID** and the key
+      (the key is only shown once)
+
+3. **Download the database:**
+
+   **Option 1: Automated setup script (recommended):**
    ```bash
-   # Run the interactive setup script
    ./setup_geolite2.sh
    ```
-   
-   **Option 2: Manual download (step-by-step):**
+   The script will prompt for your Account ID and License Key, then download and
+   install the database automatically.
+
+   **Option 2: Manual download:**
    ```bash
-   # 1. Visit the MaxMind website
-   xdg-open "https://dev.maxmind.com/geoip/geolite2-free-geolocation-data" || echo "Visit: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data"
-   
-   # 2. Create a free account (if you don't have one)
-   
-   # 3. Generate a license key in your account dashboard
-   
-   # 4. Download the GeoLite2 City database:
-   #    - Edition: GeoLite2 City
-   #    - Format: MMDB (Binary)
-   
-   # 5. Extract and place the database file
-   # Download link will look like:
-   # https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=YOUR_LICENSE_KEY&suffix=tar.gz
+   # Replace YOUR_ACCOUNT_ID and YOUR_LICENSE_KEY with your credentials
+   curl -fsSL -o GeoLite2-City.tar.gz \
+     -u YOUR_ACCOUNT_ID:YOUR_LICENSE_KEY \
+     "https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz"
+
+   tar -xzf GeoLite2-City.tar.gz
+   find . -name "GeoLite2-City.mmdb" -exec mv {} ./GeoLite2-City.mmdb \;
+   rm -rf GeoLite2-City.tar.gz GeoLite2-City_*/
    ```
 
-3. **Place database in one of these locations**:
-   - `/usr/share/GeoIP/GeoLite2-City.mmdb` (system-wide, recommended)
-   - `/var/lib/GeoIP/GeoLite2-City.mmdb` (alternative system location)
-   - `./GeoLite2-City.mmdb` (current directory)
-   - `~/GeoLite2-City.mmdb` (user home directory)
+   > **Note:** The old download URL (`/app/geoip_download?license_key=...`) is
+   > deprecated and no longer works. Use the URL above with Basic Auth.
 
-4. **Use the flag**:
-   ```bash
-   python3 domain_osint.py -d example.com --geolocate
-   ```
+4. **Place database in one of these locations** (searched in order):
+   - `./GeoLite2-City.mmdb` (current/output directory)
+   - `~/GeoLite2-City.mmdb` (home directory)
+   - `/usr/share/GeoIP/GeoLite2-City.mmdb`
+   - `/var/lib/GeoIP/GeoLite2-City.mmdb`
 
 ## Installation Methods Comparison
 
@@ -164,8 +161,9 @@ For geolocation capabilities with `--geolocate`:
   - Force install: `pip install --break-system-packages geoip2` (not recommended)
 
 ### "GeoLite2 database not found"
-- Database not downloaded or in wrong location
-- **Fix**: Follow step 3 above (Optional Geolocation Setup)
+- Database not downloaded or placed in an unsupported location
+- **Fix**: Run `./setup_geolite2.sh` — you'll need your MaxMind Account ID and License Key
+- See **Optional: IP Geolocation Setup** above for manual install steps
 
 ### "pip install -r requirements.txt" fails
 - Python package conflicts
