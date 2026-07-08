@@ -15,7 +15,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-VENV_DIR="domain_osint_env"
+VENV_DIR="argus_env"
 INSTALL_DIR="$(pwd)"
 GO_VERSION="1.21.5"
 GO_ARCH="linux-amd64"
@@ -390,7 +390,7 @@ create_wrapper_script() {
 # Activates virtual environment and runs ARGUS
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_DIR="domain_osint_env"
+VENV_DIR="argus_env"
 
 # Check if virtual environment exists
 if [ ! -d "$VENV_DIR" ]; then
@@ -407,7 +407,7 @@ if [ -d "$HOME/go/bin" ]; then
 fi
 
 # Run ARGUS with all arguments
-python3 "$SCRIPT_DIR/domain_osint.py" "$@"
+python3 "$SCRIPT_DIR/argus.py" "$@"
 EOF
 
     chmod +x "$wrapper_script"
@@ -430,7 +430,7 @@ verify_installation() {
     local failed_tools=()
 
     # Check Python dependencies
-    if ! python3 -c "import geoip2, yaml; print('Python dependencies OK')"; then
+    if ! python3 -c "import geoip2, yaml, tldextract; print('Python dependencies OK')"; then
         failed_tools+=("Python dependencies")
     fi
 
@@ -468,7 +468,7 @@ print_usage() {
     echo "  ./setup_geolite2.sh"
     echo
     echo "To update Python dependencies:"
-    echo "  source domain_osint_env/bin/activate"
+    echo "  source argus_env/bin/activate"
     echo "  pip install -r requirements.txt --upgrade"
 }
 

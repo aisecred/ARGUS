@@ -33,6 +33,7 @@ classifiers = [
 dependencies = [
     "geoip2>=2.9.7",
     "PyYAML>=6.0",
+    "tldextract>=5.0.0",
 ]
 
 [project.optional-dependencies]
@@ -50,10 +51,10 @@ Repository = "https://github.com/aisecred/ARGUS.git"
 Issues = "https://github.com/aisecred/ARGUS/issues"
 
 [project.scripts]
-domain_osint = "domain_osint:main"
+argus = "argus:main"
 
 [tool.setuptools]
-py-modules = ["domain_osint"]
+py-modules = ["argus"]
 
 [tool.black]
 line-length = 100

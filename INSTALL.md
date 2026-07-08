@@ -1,11 +1,11 @@
-# Domain OSINT Tool Installation Guide
+# ARGUS Installation Guide
 
 ## Quick Start (Recommended)
 
 **One-command installation for everything:**
 ```bash
-git clone <repo-url> domain_osint_tool
-cd domain_osint_tool
+git clone <repo-url> argus
+cd argus
 ./install.sh
 ```
 
@@ -13,7 +13,7 @@ This automated installer will:
 - ✅ Check system requirements (Python 3.8+, essential tools)
 - ✅ Install Go programming language (if missing)
 - ✅ Create isolated Python virtual environment
-- ✅ Install all Python dependencies (geoip2, PyYAML)
+- ✅ Install all Python dependencies (geoip2, PyYAML, tldextract)
 - ✅ Download and install ProjectDiscovery tools (subfinder, dnsx, httpx, tlsx, nuclei)
 - ✅ Install gowitness for screenshot capture
 - ✅ Guide you through MaxMind GeoLite2 database setup
@@ -22,7 +22,7 @@ This automated installer will:
 
 After installation, simply run:
 ```bash
-./domain_osint_wrapper.sh -d example.com --preset passive
+./argus_wrapper.sh -d example.com --preset passive
 ```
 
 ## Manual Installation (Alternative)
@@ -46,8 +46,8 @@ echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
 
 ### 3. Create Virtual Environment
 ```bash
-python3 -m venv domain_osint_env
-source domain_osint_env/bin/activate
+python3 -m venv argus_env
+source argus_env/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -83,8 +83,8 @@ MaxMind requires a free account.
    If you get "externally-managed-environment" errors:
    ```bash
    # Use virtual environment (recommended)
-   python3 -m venv domain_osint_env
-   source domain_osint_env/bin/activate
+   python3 -m venv argus_env
+   source argus_env/bin/activate
    pip install -r requirements.txt
 
    # Or system package (if available)
@@ -153,7 +153,7 @@ MaxMind requires a free account.
 - Your system (like Kali Linux) uses externally managed Python packages
 - **Primary fix** (for pipx installations):
   ```bash
-  pipx inject domain_osint geoip2
+  pipx inject argus geoip2
   ```
 - **Alternative fixes**:
   - Use venv: `python3 -m venv venv && source venv/bin/activate && pip install geoip2`
@@ -190,5 +190,5 @@ After installation, check the main [README.md](README.md) for usage examples and
 
 Start with the passive preset for safe reconnaissance:
 ```bash
-python3 domain_osint.py -d example.com --preset passive
+python3 argus.py -d example.com --preset passive
 ```

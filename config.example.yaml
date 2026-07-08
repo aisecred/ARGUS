@@ -1,6 +1,6 @@
 # Domain OSINT Tool Configuration File
 # Copy this to config.yaml and customize for your environment
-# Run with: python3 domain_osint.py --config config.yaml
+# Run with: python3 argus.py --config config.yaml
 
 # Input/Output
 domain:

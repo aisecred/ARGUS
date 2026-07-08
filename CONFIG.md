@@ -6,11 +6,11 @@ Instead of typing long command lines, operators can now use YAML config files:
 
 ```bash
 # Old way (lots of typing):
-python3 domain_osint.py -d example.com --httpx --gowitness --html-report \
+python3 argus.py -d example.com --httpx --gowitness --html-report \
   --webhook https://hooks.slack.com/... --webhook-include-assets
 
 # New way (clean and simple):
-python3 domain_osint.py --config config.yaml
+python3 argus.py --config config.yaml
 ```
 
 ## File Formats
@@ -29,7 +29,7 @@ pip install pyyaml
 
 ### Example 1: Passive Reconnaissance Only
 ```bash
-python3 domain_osint.py --config scenarios/passive-recon.yaml
+python3 argus.py --config scenarios/passive-recon.yaml
 ```
 - Discovers assets using subfinder, dnsx, tlsx
 - **NO** direct scanning (safe for OPSEC)
@@ -37,7 +37,7 @@ python3 domain_osint.py --config scenarios/passive-recon.yaml
 
 ### Example 2: Full Active Scan
 ```bash
-python3 domain_osint.py --config scenarios/active-scan.yaml
+python3 argus.py --config scenarios/active-scan.yaml
 ```
 - Full reconnaissance + HTTP probing + screenshots + vulnerability scan
 - Creates comprehensive asset intelligence
@@ -45,7 +45,7 @@ python3 domain_osint.py --config scenarios/active-scan.yaml
 
 ### Example 3: CI/CD Pipeline Integration
 ```bash
-python3 domain_osint.py --config scenarios/webhook-cicd.yaml
+python3 argus.py --config scenarios/webhook-cicd.yaml
 ```
 - Automated scanning with webhook notifications
 - Perfect for scheduled scans and integration with Slack/Discord
@@ -57,10 +57,10 @@ Command line arguments **always override** config file values:
 
 ```bash
 # Config uses passive scan, but override to add HTTPX:
-python3 domain_osint.py --config scenarios/passive-recon.yaml --httpx
+python3 argus.py --config scenarios/passive-recon.yaml --httpx
 
 # Config specifies 2 domains, but override with file:
-python3 domain_osint.py --config scenarios/passive-recon.yaml -f custom_domains.txt
+python3 argus.py --config scenarios/passive-recon.yaml -f custom_domains.txt
 ```
 
 ## Creating Custom Configs
@@ -87,7 +87,7 @@ python3 domain_osint.py --config scenarios/passive-recon.yaml -f custom_domains.
 
 3. Run it:
    ```bash
-   python3 domain_osint.py --config my-scan.yaml
+   python3 argus.py --config my-scan.yaml
    ```
 
 ## Configuration Options

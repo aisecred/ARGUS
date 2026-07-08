@@ -26,6 +26,11 @@ try:
     HAS_GEOIP = True
 except ImportError:
     HAS_GEOIP = False
+try:
+    import tldextract
+    HAS_TLDEXTRACT = True
+except ImportError:
+    HAS_TLDEXTRACT = False
 from datetime import datetime, timezone
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -99,6 +104,23 @@ def _dns_mx(name):
         return sorted(records)
     except Exception:
         return []
+
+
+if HAS_TLDEXTRACT:
+    _TLD_EXTRACTOR = tldextract.TLDExtract(suffix_list_urls=())
+
+
+def _registrable_domain(host):
+    """Return the registrable (apex) domain for a hostname using the public
+    suffix list, e.g. 'portal.nhs.co.uk' -> 'nhs.co.uk'. Returns None if
+    tldextract isn't installed or the host can't be parsed."""
+    if not HAS_TLDEXTRACT or not host:
+        return None
+    try:
+        result = _TLD_EXTRACTOR.extract_str(host.rstrip("."))
+        return result.top_domain_under_public_suffix or None
+    except Exception:
+        return None
 
 
 def _spf_lookup_count(record):
@@ -331,10 +353,13 @@ def audit_email_security(domains, db, outdir, verbose=False):
             if provider:
                 break
 
+        has_mx = bool(mx)
         risk = _email_risk_score(spf, dmarc, dkim)
+        if not has_mx and risk in ("CRITICAL", "HIGH"):
+            risk = "MEDIUM"
         results[domain] = {
             "spf": spf, "dmarc": dmarc, "dkim": dkim, "mta_sts": mta,
-            "mx": mx, "provider": provider, "bimi_present": bool(bimi),
+            "mx": mx, "has_mx": has_mx, "provider": provider, "bimi_present": bool(bimi),
             "tlsrpt_present": bool(tlsrpt), "spoofing_risk": risk,
         }
 
@@ -343,6 +368,8 @@ def audit_email_security(domains, db, outdir, verbose=False):
             "MEDIUM": Colors.YELLOW, "LOW": Colors.GREEN, "PASS": Colors.GREEN,
         }.get(risk, Colors.CYAN)
         print_status(f"  Spoofing risk: {risk}", risk_color, "[*]")
+        if not has_mx:
+            print_status(f"  No MX records — {domain} does not appear to send/receive mail directly; findings below are lower priority", Colors.CYAN, "[*]")
 
         def _status_line(label, findings):
             if not findings.get("present"):
@@ -373,7 +400,7 @@ def audit_email_security(domains, db, outdir, verbose=False):
         # Store email findings as vuln tags on the domain asset
         vuln_tags = []
         if not spf["present"]:
-            vuln_tags.append("email:spf-missing(critical)")
+            vuln_tags.append("email:spf-missing(critical)" if has_mx else "email:spf-missing(info)")
         elif "+all" in spf.get("record", ""):
             vuln_tags.append("email:spf-plus-all(critical)")
         elif "~all" in spf.get("record", ""):
@@ -382,7 +409,7 @@ def audit_email_security(domains, db, outdir, verbose=False):
             vuln_tags.append("email:spf-lookup-limit-exceeded(high)")
 
         if not dmarc["present"]:
-            vuln_tags.append("email:dmarc-missing(critical)")
+            vuln_tags.append("email:dmarc-missing(critical)" if has_mx else "email:dmarc-missing(info)")
         elif dmarc.get("policy") == "none":
             vuln_tags.append("email:dmarc-p-none(high)")
         elif dmarc.get("policy") == "quarantine":
@@ -391,7 +418,7 @@ def audit_email_security(domains, db, outdir, verbose=False):
             vuln_tags.append(f"email:dmarc-pct-{dmarc['pct']}(medium)")
 
         if not dkim:
-            vuln_tags.append("email:dkim-not-found(medium)")
+            vuln_tags.append("email:dkim-not-found(medium)" if has_mx else "email:dkim-not-found(info)")
         else:
             for d in dkim:
                 if d.get("key_bits") and d["key_bits"] <= 1024 and not d["revoked"]:
@@ -513,7 +540,6 @@ class Colors:
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 def print_status(msg, color=Colors.BLUE, symbol="[*]"):
-    logging.info(f"{symbol} {msg}")
     print(f"{color}{Colors.BOLD}{symbol} {msg}{Colors.END}")
 
 def check_dependencies(tools):
@@ -2436,7 +2462,7 @@ Geolocation Setup:
     # Check if geoip2 is available when geolocation is requested
     if args.geolocate and not HAS_GEOIP:
         print_status("Geolocation requested but geoip2 is not available in the current Python environment", Colors.YELLOW, "[!]")
-        print_status("If you used install.sh, activate the correct venv first: source domain_osint_env/bin/activate", Colors.YELLOW, "[!]")
+        print_status("If you used install.sh, activate the correct venv first: source argus_env/bin/activate", Colors.YELLOW, "[!]")
         print_status("Otherwise install it: pip install geoip2", Colors.YELLOW, "[!]")
         args.geolocate = False
     
@@ -3171,7 +3197,43 @@ Geolocation Setup:
 
     email_results = {}
     if getattr(args, "audit_email", False) and domains:
-        email_results = audit_email_security(domains, db, abs_outdir, args.verbose) or {}
+        audit_domains = list(domains)
+        tenant_file = os.path.join(abs_outdir, "tenants.txt")
+        if os.path.exists(tenant_file):
+            try:
+                with open(tenant_file, "r") as tf:
+                    tenant_domains = [l.strip().lower() for l in tf if l.strip()]
+            except OSError:
+                tenant_domains = []
+            mx_tenants = [t for t in tenant_domains if t not in audit_domains and _dns_mx(t)]
+            if mx_tenants:
+                print_status(f"Email audit: {len(mx_tenants)} tenant domain(s) with MX records added — {', '.join(mx_tenants)}", Colors.CYAN, "[*]")
+                audit_domains.extend(mx_tenants)
+
+        san_hosts = set()
+        for tls_file in glob.glob(os.path.join(abs_outdir, "tls_*.txt")):
+            try:
+                with open(tls_file, "r") as f:
+                    for line in f:
+                        clean = re.sub(r'^(https?://)', '', line.strip()).split(":")[0].lower()
+                        if clean:
+                            san_hosts.add(clean)
+            except OSError:
+                pass
+        if san_hosts and not HAS_TLDEXTRACT:
+            print_status("TLS SANs found but tldextract isn't installed — skipping SAN-derived domain discovery (pip install tldextract)", Colors.YELLOW, "[!]")
+        elif san_hosts:
+            san_apexes = set()
+            for h in san_hosts:
+                apex = _registrable_domain(h)
+                if apex and apex not in audit_domains:
+                    san_apexes.add(apex)
+            mx_sans = [a for a in sorted(san_apexes) if _dns_mx(a)]
+            if mx_sans:
+                print_status(f"Email audit: {len(mx_sans)} TLS-SAN-derived domain(s) with MX records added — {', '.join(mx_sans)}", Colors.CYAN, "[*]")
+                audit_domains.extend(mx_sans)
+
+        email_results = audit_email_security(audit_domains, db, abs_outdir, args.verbose) or {}
 
     if args.llm_analysis:
         generate_llm_analysis(db, domains, abs_outdir, args, email_results=email_results)
